@@ -36,8 +36,8 @@ class SAPlayerPresenter {
     weak var delegate: SAPlayerDelegate?
     var shouldPlayImmediately = false //for auto-play
     
-    var needle: Needle?
-    var duration: Duration?
+    @Published var needle: Needle?
+    @Published var duration: Duration?
     
     private var key: String?
     private var isPlaying: SAPlayingStatus = .buffering
