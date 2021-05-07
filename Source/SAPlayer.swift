@@ -42,7 +42,7 @@ public class SAPlayer {
      */
     public static let shared: SAPlayer = SAPlayer()
     
-    private var presenter: SAPlayerPresenter!
+    var presenter: SAPlayerPresenter!
     private var player: AudioEngine?
     
     /**
