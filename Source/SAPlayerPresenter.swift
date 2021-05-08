@@ -36,8 +36,8 @@ class SAPlayerPresenter {
     weak var delegate: SAPlayerDelegate?
     var shouldPlayImmediately = false //for auto-play
     
-    @Published var needle: Needle?
-    @Published var duration: Duration?
+    var needle: Needle?
+    var duration: Duration?
     
     private var key: String?
     private var isPlaying: SAPlayingStatus = .buffering
@@ -91,7 +91,11 @@ class SAPlayerPresenter {
         // Because we support queueing, we want to clear off any existing players.
         // Therefore, instantiate new player every time, destroy any existing ones.
         // This prevents a crash where an owning engine already exists.
-        handleClear()
+        
+        // we disable this for the moment.
+        // https://github.com/tanhakabir/SwiftAudioPlayer/issues/106
+        // handleClear()
+        
         attachForUpdates(url: url)
         delegate?.startAudioStreamed(withRemoteUrl: url, bitrate: bitrate)
     }
