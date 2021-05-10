@@ -259,7 +259,12 @@ class ViewController: UIViewController {
     @IBAction func rateChanged(_ sender: Any) {
         let speed = rateSlider.value
         rateLabel.text = "rate: \(speed)x"
-        SAPlayer.shared.rate = speed
+        
+        if skipSilencesSwitch.isOn {
+            SAPlayer.Features.SkipSilences.setRateSafely(speed) // if using Skip Silences, we need use this version of setting rate to safely change the rate with the feature enabled.
+        } else {
+            SAPlayer.shared.rate = speed
+        }
     }
     @IBAction func reverbChanged(_ sender: Any) {
         let reverb = reverbSlider.value
@@ -295,7 +300,7 @@ class ViewController: UIViewController {
                         self.currentUrlLocationLabel.text = "saved to: \(url.lastPathComponent)"
                         self.selectedAudio.addSavedUrl(url)
                         
-                        SAPlayer.shared.startSavedAudio(withSavedUrl: url)
+                        SAPlayer.shared.startSavedAudio(withSavedUrl: url, mediaInfo: self.selectedAudio.lockscreenInfo)
                         self.lastPlayedAudioIndex = self.selectedAudio.index
                     }
                 })
@@ -312,9 +317,9 @@ class ViewController: UIViewController {
     @IBAction func streamTouched(_ sender: Any) {
         if !isStreaming {
             if selectedAudio.index == 2 { // radio
-                SAPlayer.shared.startRemoteAudio(withRemoteUrl: selectedAudio.url, bitrate: .low)
+                SAPlayer.shared.startRemoteAudio(withRemoteUrl: selectedAudio.url, bitrate: .low, mediaInfo: selectedAudio.lockscreenInfo)
             } else {
-                SAPlayer.shared.startRemoteAudio(withRemoteUrl: selectedAudio.url)
+                SAPlayer.shared.startRemoteAudio(withRemoteUrl: selectedAudio.url, mediaInfo: selectedAudio.lockscreenInfo)
             }
 
             lastPlayedAudioIndex = selectedAudio.index
