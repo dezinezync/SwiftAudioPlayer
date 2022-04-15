@@ -3,6 +3,7 @@
 [![Version](https://img.shields.io/cocoapods/v/SwiftAudioPlayer.svg?style=flat)](https://cocoapods.org/pods/SwiftAudioPlayer)
 [![License](https://img.shields.io/cocoapods/l/SwiftAudioPlayer.svg?style=flat)](https://cocoapods.org/pods/SwiftAudioPlayer)
 [![Platform](https://img.shields.io/cocoapods/p/SwiftAudioPlayer.svg?style=flat)](https://cocoapods.org/pods/SwiftAudioPlayer)
+[![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage)
 
 Swift-based audio player with AVAudioEngine as its base. Allows for: streaming online audio, playing local file, changing audio speed (3.5X, 4X, 32X), pitch, and real-time audio manipulation using custom [audio enhancements](https://developer.apple.com/documentation/avfoundation/audio_track_engineering/audio_engine_building_blocks/audio_enhancements).
 
@@ -25,6 +26,7 @@ Thus, using [AudioToolbox](https://developer.apple.com/documentation/audiotoolbo
 These are community supported audio manipulation features using this audio engine. You can implement your own version of these features and you can look at [SAPlayerFeatures](https://github.com/tanhakabir/SwiftAudioPlayer/blob/master/Source/SAPlayerFeatures.swift) to learn how they were implemented using the library.
 1. Skip silences in audio
 1. Sleep timer to stop playing audio after a delay
+1. Loop audio playback for both streamed and saved audio
 
 ### Requirements
 
@@ -76,14 +78,11 @@ To receive streaming progress (for buffer progress %):
 
 override func viewDidLoad() {
     super.viewDidLoad()
-    
-    _ = SAPlayer.Updates.StreamingBuffer.subscribe{ [weak self] (url, buffer) in
+
+    _ = SAPlayer.Updates.StreamingBuffer.subscribe{ [weak self] buffer in
         guard let self = self else { return }
-        guard url == self.selectedAudioUrl else { return }
 
-        let progress = Float((buffer.totalDurationBuffered + buffer.startingBufferTimePositon) / self.duration)
-
-        self.bufferProgress.progress = progress
+        self.bufferProgress.progress = Float(buffer.bufferingProgress)
 
         self.isPlayable = buffer.isReadyForPlaying
     }
@@ -117,16 +116,9 @@ For more details and specifics look at the [API documentation](#api-in-detail) b
 
 ## Contact
 
-### Issues
+### Issues or questions
 
-Submit any issues or requests [on the Github repo](https://github.com/tanhakabir/SwiftAudioPlayer/issues).
-
-### Any questions?
-
-Feel free to reach out to either of us:
-
-[tanhakabir](https://github.com/tanhakabir), tanhakabir.ca@gmail.com
-[JonMercer](https://github.com/JonMercer), mercer.jon@gmail.com
+Submit any issues, requests, and questions [on the Github repo](https://github.com/tanhakabir/SwiftAudioPlayer/issues).
 
 ### License
 
@@ -146,7 +138,7 @@ Known supported file types are `.mp3` and `.wav`.
 
 ### Playing Audio (Basic Commands)
 
-To set up player with audio to play, use either: 
+To set up player with audio to play, use either:
 * `startSavedAudio(withSavedUrl url: URL, mediaInfo: SALockScreenInfo?)` to play audio that is saved on the device.
 * `startRemoteAudio(withRemoteUrl url: URL, bitrate: SAPlayerBitrate, mediaInfo: SALockScreenInfo?)` to play audio streamed from a remote location.
 
@@ -166,7 +158,7 @@ skipBackwards()
 
 ### Queuing Audio for Autoplay
 
-You can queue either remote or locally saved audio to be played automatically next. 
+You can queue either remote or locally saved audio to be played automatically next.
 
 To queue:
 ```swift
@@ -174,13 +166,15 @@ SAPlayer.shared.queueSavedAudio(withSavedUrl: C://random_folder/audio.mp3) // or
 SAPlayer.shared.queueRemoteAudio(withRemoteUrl: https://randomwebsite.com/audio.mp3)
 ```
 
+You can also directly access and modify the queue from `SAPlayer.shared.audioQueued`.
+
 #### Important
 
 The engine can handle audio manipulations like speed, pitch, effects, etc. To do this, nodes for effects must be finalized before initialize is called. Look at [audio manipulation documentation](#realtime-audio-manipulation) for more information.
 
-### Lockscreen Media Player
- 
-Update and set what displays on the lockscreen's media player when the player is active. 
+### LockScreen Media Player
+
+Update and set what displays on the lockscreen's media player when the player is active.
 
 `skipForwardSeconds` and `skipBackwardSeconds` for the intervals to skip forward and back with.
 
@@ -263,15 +257,17 @@ Receive updates for changing values from the player, such as the duration, elaps
 
 All subscription functions for updates take the form of:
 ```swift
-func subscribe(_ closure: @escaping (_ url: URL, _ payload:  <Payload>) -> ()) -> UInt
+func subscribe(_ closure: @escaping (_ payload:  <Payload>) -> ()) -> UInt
 ```
 
 - `closure`: The closure that will receive the updates. It's recommended to have a weak reference to a class that uses these functions.
-- `url`: The corresponding remote URL for the update. In the case there might be multiple files observed, such as downloading many files at once or switching over from playing one audio to another and the updates corresponding to the previous aren't silenced on switch-over.
 - `payload`: The updated value.
 - Returns: the id for the subscription in the case you would like to unsubscribe to updates for the closure.
 
-Similarily unsubscribe takes the form of: 
+Sometimes there is:
+- `url`: The corresponding remote URL for the update. In the case there might be multiple files observed, such as downloading many files at once.
+
+Similarily unsubscribe takes the form of:
 ```swift
 func unsubscribe(_ id: UInt)
 ```
@@ -299,7 +295,7 @@ Changes in the playing status of the player. Can be one of the following 4: `pla
 ### StreamingBuffer
 Payload = `SAAudioAvailabilityRange`
 
-Changes in the progress of downloading audio for streaming. Information about range of audio available and if the audio is playable. Look at SAAudioAvailabilityRange for more information. 
+Changes in the progress of downloading audio for streaming. Information about range of audio available and if the audio is playable. Look at SAAudioAvailabilityRange for more information.
 
 For progress of downloading audio that saves to the phone for playback later, look at AudioDownloading instead.
 
@@ -307,6 +303,11 @@ For progress of downloading audio that saves to the phone for playback later, lo
 Payload = `Double`
 
 Changes in the progress of downloading audio in the background. This does not correspond to progress in streaming downloads, look at StreamingBuffer for streaming progress.
+
+### AudioQueue
+Payload = `URL`
+
+Notification of the URL of the upcoming audio to be played. This URL may be remote or locally saved.
 
 ## Audio Effects
 

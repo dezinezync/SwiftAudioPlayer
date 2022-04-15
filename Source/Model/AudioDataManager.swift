@@ -30,9 +30,12 @@ protocol AudioDataManagable {
     var numberOfActive: Int { get }
     
     var allowCellular: Bool { get set }
+    var downloadDirectory: FileManager.SearchPathDirectory { get }
     
+    func setHTTPHeaderFields(_ fields: [String: String]?)
     func setBackgroundCompletionHandler(_ completionHandler: @escaping () -> ())
     func setAllowCellularDownloadPreference(_ preference: Bool)
+    func setDownloadDirectory(_ dir: FileManager.SearchPathDirectory)
     
     func clear()
     
@@ -46,13 +49,14 @@ protocol AudioDataManagable {
     func deleteStream(withRemoteURL url: AudioURL) 
     
     func getPersistedUrl(withRemoteURL url: AudioURL) -> URL?
-    func startDownload(withRemoteURL url: AudioURL, completion: @escaping (URL) -> ())
+    func startDownload(withRemoteURL url: AudioURL, completion: @escaping (URL, Error?) -> ())
     func cancelDownload(withRemoteURL url: AudioURL)
     func deleteDownload(withLocalURL url: URL)
 }
 
 class AudioDataManager: AudioDataManagable {
     var allowCellular: Bool = true
+    var downloadDirectory: FileManager.SearchPathDirectory = .documentDirectory
     
     static let shared: AudioDataManagable = AudioDataManager()
     
@@ -96,12 +100,21 @@ class AudioDataManager: AudioDataManagable {
         streamingCallbacks = []
     }
     
+    func setHTTPHeaderFields(_ fields: [String: String]?) {
+        streamWorker.HTTPHeaderFields = fields
+        downloadWorker.HTTPHeaderFields = fields
+    }
+    
     func setBackgroundCompletionHandler(_ completionHandler: @escaping () -> ()) {
         backgroundCompletion = completionHandler
     }
     
     func setAllowCellularDownloadPreference(_ preference: Bool) {
         allowCellular = preference
+    }
+    
+    func setDownloadDirectory(_ dir: FileManager.SearchPathDirectory) {
+        downloadDirectory = dir
     }
     
     func attach(callback: @escaping (_ id: ID, _ progress: Double)->()) {
@@ -158,12 +171,12 @@ extension AudioDataManager {
         return FileStorage.Audio.locate(url.key)
     }
     
-    func startDownload(withRemoteURL url: AudioURL, completion: @escaping (URL) -> ()) {
+    func startDownload(withRemoteURL url: AudioURL, completion: @escaping (URL, Error?) -> ()) {
         let key = url.key
         
         if let savedUrl = FileStorage.Audio.locate(key), FileStorage.Audio.isStored(key) {
             globalDownloadProgressCallback(key, 1.0)
-            completion(savedUrl)
+            completion(savedUrl, nil)
             return
         }
         
