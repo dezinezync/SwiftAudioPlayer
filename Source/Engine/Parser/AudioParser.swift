@@ -220,7 +220,7 @@ class AudioParser: AudioParsable {
         lockQueue.sync { [weak self] in
             guard let self else { return }
 
-            if index > self.audioPackets.count - self.MIN_PACKETS_TO_HAVE_AVAILABLE_BEFORE_THROTTLING_PARSING {
+            if index > max(0, self.audioPackets.count - self.MIN_PACKETS_TO_HAVE_AVAILABLE_BEFORE_THROTTLING_PARSING) {
                 self.processNextDataPacket()
             }
         }
