@@ -160,7 +160,8 @@ class AudioParser: AudioParsable {
             self.networkProgress = progress
             
             // initially parse a bunch of packets
-            self.lockQueue.sync {
+            self.lockQueue.sync { [weak self] in
+                guard let self else { return }
                 if self.fileAudioFormat == nil {
                     self.processNextDataPacket()
                 } else if self.audioPackets.count - self.lastSentAudioPacketIndex < self.MIN_PACKETS_TO_HAVE_AVAILABLE_BEFORE_THROTTLING_PARSING {
@@ -192,7 +193,8 @@ class AudioParser: AudioParsable {
         
         var exception: ParserError? = nil
         var packet: (AudioStreamPacketDescription?, Data) = (nil, Data())
-        lockQueue.sync {
+        lockQueue.sync { [weak self] in
+            guard let self else { return }
             if packetIndex >= self.audioPackets.count {
                 if isParsingComplete {
                     exception = ParserError.readerAskingBeyondEndOfFile
@@ -215,7 +217,9 @@ class AudioParser: AudioParsable {
     }
     
     private func determineIfMoreDataNeedsToBeParsed(index: AVAudioPacketCount) {
-        lockQueue.sync {
+        lockQueue.sync { [weak self] in
+            guard let self else { return }
+
             if index > self.audioPackets.count - self.MIN_PACKETS_TO_HAVE_AVAILABLE_BEFORE_THROTTLING_PARSING {
                 self.processNextDataPacket()
             }
@@ -225,7 +229,8 @@ class AudioParser: AudioParsable {
     func tellSeek(toIndex index: AVAudioPacketCount) {
         //Already within the processed audio packets. Ignore
         var isIndexValid: Bool = true
-        lockQueue.sync {
+        lockQueue.sync { [weak self] in
+            guard let self else { return }
             if self.indexSeekOffset <= index && index < self.audioPackets.count + Int(self.indexSeekOffset) {
                 isIndexValid = false
             }
@@ -242,7 +247,8 @@ class AudioParser: AudioParsable {
         // NOTE: Order matters. Need to prevent appending to the array before we clean it. Just in case
         // then we tell the throttler to send us appropriate packet
         shouldPreventPacketFromFillingUp = true
-        lockQueue.sync {
+        lockQueue.sync { [weak self] in
+            guard let self else { return }
             self.audioPackets = []
         }
         
@@ -301,7 +307,8 @@ class AudioParser: AudioParsable {
     }
     
     func append(description: AudioStreamPacketDescription?, data: Data) {
-        lockQueue.sync {
+        lockQueue.sync { [weak self] in
+            guard let self else { return }
             self.audioPackets.append((description, data))
         }
     }
@@ -338,7 +345,8 @@ class AudioParser: AudioParsable {
             guard let self = self else { return }
             guard let data = d else { return }
             
-            self.lockQueue.sync {
+            self.lockQueue.sync { [weak self] in
+                guard let self else { return }
                 Log.debug("processing data count: \(data.count) :: already had \(self.audioPackets.count) audio packets")
             }
             self.shouldPreventPacketFromFillingUp = false
