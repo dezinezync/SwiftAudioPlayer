@@ -132,8 +132,12 @@ class AudioConverter: AudioConvertable {
          needs to eventually increment the audioPatcketIndex. We don't want threads
          to mess this up
          */
-        return try queue.sync { () -> AVAudioPCMBuffer in
-            let framesPerPacket = engineAudioFormat.streamDescription.pointee.mFramesPerPacket
+        return try queue.sync { [weak self] () -> AVAudioPCMBuffer in
+            guard let self else {
+              return pcmBuffer
+            }
+          
+            let framesPerPacket = self.engineAudioFormat.streamDescription.pointee.mFramesPerPacket
             var numberOfPacketsWeWantTheBufferToFill = pcmBuffer.frameLength / framesPerPacket
             
             let context = unsafeBitCast(self, to: UnsafeMutableRawPointer.self)
