@@ -40,7 +40,7 @@ public class SAPlayer {
     /**
      Access to the player.
      */
-    public static let shared: SAPlayer = SAPlayer()
+  nonisolated(unsafe) public static let shared: SAPlayer = SAPlayer()
     
     private var presenter: SAPlayerPresenter!
     private var player: AudioEngine?
